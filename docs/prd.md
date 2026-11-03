@@ -1,195 +1,272 @@
 # Product Requirements Document (PRD)
 
-**Proyek:** Sistem Manajemen Kualitas Produk\
-**Versi:** 0.1\
-**Status:** Draft untuk validasi kebutuhan
+**Project:** Sistem Manajemen Kualitas Produk  
+**Version:** 0.2
+**Status:** Draft
 
-## 1. Ringkasan
+## 1. Project Overview
 
-Sistem Manajemen Kualitas Produk adalah aplikasi web untuk membantu
-pencatatan data produk, standar kualitas, inspeksi, hasil evaluasi, dan
-tindak lanjut ketidaksesuaian. Dokumen ini merupakan rancangan awal,
-bukan spesifikasi final. Alur dan aturan bisnis harus divalidasi dengan
-pihak laboratorium/pengguna sebelum implementasi penuh.
+### 1.1 Purpose
 
-## 2. Tujuan
+Sistem Manajemen Kualitas Produk merupakan aplikasi berbasis web untuk mengelola data produk, kategori, kriteria kualitas, proses evaluasi, dan hasil penilaian kualitas produk.
 
--   Memusatkan data produk dan standar kualitas.
--   Mendokumentasikan proses inspeksi secara konsisten.
--   Menghasilkan status inspeksi berdasarkan aturan yang ditetapkan.
--   Memudahkan pemantauan hasil inspeksi dan tindak lanjut.
+Sistem menggunakan beberapa metode evaluasi untuk menentukan apakah suatu produk memenuhi standar kualitas yang telah ditentukan.
 
-## 3. Pengguna dan Peran
+### 1.2 Project Scope
 
-  -----------------------------------------------------------------------
-  Peran                               Tanggung jawab awal
-  ----------------------------------- -----------------------------------
-  Admin                               Mengelola akun, kategori, produk,
-                                      dan konfigurasi
+Sistem berfokus pada pengelolaan dan evaluasi kualitas produk secara digital menggunakan data produk simulasi atau fiktif.
 
-  Quality Control (QC)                Melakukan inspeksi dan memasukkan
-                                      hasil pengukuran
+Sistem tidak mencakup:
+- Pengelolaan stok barang.
+- Manajemen gudang.
+- Proses produksi.
+- Transaksi penjualan.
+- Pengelolaan distribusi produk.
 
-  Supervisor                          Memantau hasil dan meninjau tindak
-                                      lanjut
-  -----------------------------------------------------------------------
+## 2. User Roles
 
-Hak akses di atas masih perlu dikonfirmasi. Jangan menganggap seluruh
-peran wajib ada pada MVP.
+Sistem memiliki tiga jenis pengguna:
 
-## 4. Ruang Lingkup Kandidat
+| Role | Responsibility |
+|---|---|
+| Admin | Mengelola pengguna, kategori, produk, dan kriteria kualitas |
+| Evaluator | Melakukan evaluasi kualitas produk |
+| Supervisor | Memantau hasil evaluasi dan laporan |
 
-### 4.1 Modul
+## 3. Functional Requirements
 
-1.  Autentikasi dan otorisasi.
-2.  Dashboard ringkasan.
-3.  Manajemen kategori.
-4.  Manajemen produk.
-5.  Manajemen standar kualitas.
-6.  Pencatatan inspeksi.
-7.  Evaluasi PASS/FAIL.
-8.  Pencatatan cacat dan tindakan korektif.
-9.  Laporan dan riwayat inspeksi.
+### 3.1 Dashboard
 
-### 4.2 Di luar MVP awal
+Sistem menyediakan dashboard yang menampilkan:
+- Jumlah produk.
+- Jumlah evaluasi.
+- Jumlah produk dengan status PASS.
+- Jumlah produk dengan status FAIL.
+- Ringkasan statistik kualitas produk.
 
--   Integrasi perangkat pengukuran.
--   Notifikasi otomatis.
--   Ekspor laporan kompleks.
--   Multi-cabang atau multi-organisasi.
--   Workflow persetujuan berlapis.
+### 3.2 Product Management
 
-## 5. Alur Proses Kandidat
+Admin dapat:
+- Menambahkan produk.
+- Melihat daftar produk.
+- Mengubah informasi produk.
+- Menghapus produk.
+- Mencari dan memfilter produk.
 
-1.  Admin membuat kategori dan data produk.
-2.  Admin menetapkan standar kualitas untuk produk.
-3.  QC membuat catatan inspeksi untuk produk atau batch.
-4.  QC memasukkan nilai parameter yang diperiksa.
-5.  Sistem mengevaluasi nilai terhadap standar.
-6.  Jika ada parameter gagal, inspeksi ditandai FAIL dan ketidaksesuaian
-    dicatat.
-7.  Supervisor meninjau hasil dan tindak lanjut bila proses tersebut
-    memang diperlukan.
+Informasi produk meliputi:
+- Kode produk.
+- Nama produk.
+- Kategori.
+- Deskripsi.
+- Status produk.
 
-## 6. Kebutuhan Fungsional Kandidat
+### 3.3 Category Management
 
-  -----------------------------------------------------------------------
-  ID                      Kebutuhan               Prioritas awal
-  ----------------------- ----------------------- -----------------------
-  FR-01                   Sistem menyediakan      Medium
-                          autentikasi pengguna    
+Admin dapat:
+- Menambahkan kategori.
+- Melihat daftar kategori.
+- Mengubah kategori.
+- Menghapus kategori.
 
-  FR-02                   Admin dapat membuat,    High
-                          melihat, mengubah, dan  
-                          menghapus kategori      
+### 3.4 Quality Criteria Management
 
-  FR-03                   Admin dapat mengelola   High
-                          data produk             
+Admin dapat mengelola kriteria kualitas untuk setiap produk.
 
-  FR-04                   Pengguna berwenang      High
-                          dapat mengelola standar 
-                          kualitas                
+Informasi kriteria meliputi:
+- Nama kriteria.
+- Deskripsi.
+- Metode evaluasi.
+- Standar penilaian.
+- Status wajib atau opsional.
+- Status aktif atau tidak aktif.
 
-  FR-05                   QC dapat membuat        High
-                          inspeksi                
+Sistem mendukung tiga metode evaluasi.
 
-  FR-06                   QC dapat memasukkan     High
-                          hasil pengukuran per    
-                          parameter               
+**A. Rating 1–5**
 
-  FR-07                   Sistem mengevaluasi     High
-                          hasil inspeksi          
-                          berdasarkan standar     
+Evaluator memberikan nilai antara 1 sampai 5.
 
-  FR-08                   Pengguna dapat melihat  Medium
-                          riwayat inspeksi        
+Aturan:
+- PASS jika nilai aktual lebih besar atau sama dengan nilai minimum.
+- FAIL jika nilai aktual lebih kecil dari nilai minimum.
 
-  FR-09                   Ketidaksesuaian dapat   Medium
-                          dicatat dan             
-                          ditindaklanjuti         
+**B. Numeric**
 
-  FR-10                   Dashboard menampilkan   Low
-                          ringkasan data          
-  -----------------------------------------------------------------------
+Evaluator memasukkan nilai numerik sesuai standar yang ditentukan.
 
-Prioritas harus ditinjau ulang setelah kebutuhan pengguna dikonfirmasi.
+Standar dapat berupa:
+- Nilai minimum.
+- Nilai maksimum.
+- Rentang nilai.
 
-## 7. Aturan Bisnis Sementara
+Status PASS diberikan jika nilai aktual memenuhi standar.
 
--   Status PASS hanya diberikan jika seluruh parameter wajib memenuhi
-    standar.
--   Status FAIL diberikan jika minimal satu parameter wajib tidak
-    memenuhi standar.
--   Evaluasi dilakukan di backend, bukan hanya di frontend.
--   Nilai batas minimum/maksimum bersifat inklusif sebagai asumsi awal;
-    konfirmasi apakah batas inklusif atau eksklusif.
--   Inspeksi harus menyimpan waktu, pelaksana, produk/batch, dan detail
-    parameter.
--   Perubahan standar tidak boleh diam-diam mengubah hasil inspeksi
-    historis. Simpan snapshot standar atau versi standar saat inspeksi
-    dilakukan.
+**C. Pass/Fail**
 
-## 8. Kebutuhan Non-Fungsional
+Evaluator menentukan hasil secara langsung dengan memilih:
+- PASS.
+- FAIL.
 
--   Validasi input dilakukan di backend.
--   Password disimpan dalam bentuk hash jika autentikasi lokal
-    digunakan.
--   Otorisasi diperiksa di backend.
--   Kredensial database tidak boleh dikirim ke browser.
--   Endpoint daftar mendukung pagination dan filter saat data bertambah.
--   UI menyediakan state loading, empty, error, dan success.
--   Struktur kode modular dan mudah diuji.
--   Perubahan skema database dikelola dengan migration.
+### 3.5 Quality Evaluation
 
-## 9. MVP Minggu Pertama
+Evaluator dapat:
+- Memilih produk yang akan dievaluasi.
+- Melihat kriteria kualitas aktif.
+- Mengisi hasil setiap kriteria.
+- Mengirim hasil evaluasi.
+- Melihat hasil evaluasi.
 
-Target realistis: satu alur end-to-end untuk membuktikan fondasi
-aplikasi. - Repository monorepo dengan folder `frontend/` dan
-`backend/`. - Next.js dan NestJS dapat dijalankan terpisah. - NestJS
-terhubung ke Supabase PostgreSQL melalui Prisma. - Modul produk memiliki
-CRUD dasar. - Frontend menampilkan daftar produk dan form tambah/edit. -
-Validasi dasar dan penanganan error API tersedia.
+Sistem melakukan validasi dan perhitungan hasil evaluasi melalui backend.
 
-Tidak termasuk target minggu pertama: seluruh modul inspeksi, dashboard
-final, RBAC lengkap, laporan, dan workflow tindakan korektif.
+Setiap evaluasi menyimpan:
+- Produk yang dievaluasi.
+- Pengguna yang melakukan evaluasi.
+- Waktu evaluasi.
+- Hasil setiap kriteria.
+- Status akhir evaluasi.
 
-## 10. Kriteria Penerimaan MVP
+### 3.6 Evaluation Results
 
--   Frontend berjalan secara lokal.
--   Backend berjalan secara lokal.
--   Backend berhasil terhubung ke database Supabase.
--   Data produk dapat dibuat, dibaca, diubah, dan dihapus melalui API.
--   Perubahan data tersimpan di database.
--   Frontend menggunakan API backend, bukan mengakses database secara
-    langsung.
--   Input tidak valid ditolak dengan respons yang dapat dipahami.
--   Error API ditampilkan secara wajar pada UI.
+Sistem menentukan status akhir evaluasi berdasarkan kriteria wajib.
 
-## 11. Pertanyaan yang Harus Divalidasi
+| Condition | Final Status |
+|---|---|
+| Masih ada kriteria wajib yang belum diisi | INCOMPLETE |
+| Semua kriteria wajib selesai dan terdapat hasil FAIL | FAIL |
+| Semua kriteria wajib selesai dan seluruhnya PASS | PASS |
 
-1.  Produk apa yang dikelola dan apa identitas uniknya?
-2.  Inspeksi dilakukan per unit, batch, atau sampel?
-3.  Siapa yang boleh membuat dan mengubah standar?
-4.  Apakah satu produk memiliki beberapa standar atau versi standar?
-5.  Parameter kualitas berupa angka, kategori, checklist, atau
-    kombinasi?
-6.  Apakah nilai batas minimum dan maksimum inklusif?
-7.  Apakah inspeksi memerlukan persetujuan supervisor?
-8.  Apakah hasil inspeksi yang sudah disimpan boleh diedit?
-9.  Apakah perlu foto bukti, lampiran, atau tanda tangan?
-10. Apakah laporan PDF/Excel dibutuhkan?
-11. Apakah autentikasi dan pembagian role wajib untuk versi pertama?
+Kriteria opsional tidak memengaruhi status akhir evaluasi.
 
-## 12. Risiko dan Asumsi
+Nilai rata-rata rating dapat ditampilkan sebagai informasi tambahan, tetapi tidak digunakan sebagai penentu kelulusan.
 
--   Risiko utama: aturan inspeksi belum tervalidasi.
--   Risiko: model data berubah setelah proses bisnis dipahami.
--   Asumsi: satu organisasi menggunakan sistem pada tahap awal.
--   Asumsi: Supabase digunakan sebagai PostgreSQL terkelola, bukan
-    sebagai akses database langsung dari frontend.
+### 3.7 Evaluation History
 
-## 13. Definisi Selesai
+Sistem menyimpan riwayat evaluasi agar pengguna dapat:
+- Melihat evaluasi sebelumnya.
+- Melihat detail hasil evaluasi.
+- Melihat hasil evaluasi berdasarkan produk.
+- Membandingkan hasil evaluasi dari waktu ke waktu.
 
-Fitur dianggap selesai jika kebutuhan dan aturan bisnisnya jelas,
-implementasi berjalan, validasi dan error handling tersedia, pengujian
-relevan dilakukan, serta dokumentasi diperbarui.
+Perubahan kriteria kualitas tidak boleh mengubah hasil evaluasi historis.
+
+### 3.8 Reports
+
+Sistem menyediakan laporan yang mencakup:
+- Riwayat evaluasi.
+- Hasil evaluasi setiap produk.
+- Distribusi status PASS dan FAIL.
+- Detail hasil setiap kriteria.
+- Filter berdasarkan produk, kategori, dan periode.
+
+## 4. Non-Functional Requirements
+
+### 4.1 Performance
+
+- Sistem dapat menampilkan data dengan waktu respons yang wajar.
+- Proses evaluasi dilakukan melalui backend.
+- Query database dibuat secara efisien.
+
+### 4.2 Security
+
+- Sistem menerapkan autentikasi pengguna.
+- Hak akses dibatasi berdasarkan role.
+- Password disimpan dalam bentuk hash.
+- Validasi input dilakukan di backend.
+- Informasi sensitif disimpan melalui environment variables.
+
+### 4.3 Usability
+
+- Antarmuka mudah dipahami.
+- Navigasi konsisten.
+- Formulir evaluasi mudah digunakan.
+- Status hasil evaluasi ditampilkan dengan jelas.
+
+### 4.4 Maintainability
+
+- Frontend dan backend dipisahkan.
+- Backend menggunakan arsitektur modular.
+- Kode menggunakan TypeScript.
+- Database dikelola menggunakan Prisma ORM.
+
+## 5. Technology Stack
+
+| Component | Technology |
+|---|---|
+| Frontend | Next.js |
+| Programming Language | TypeScript |
+| Styling | Tailwind CSS |
+| Backend | NestJS |
+| API | REST API |
+| ORM | Prisma |
+| Database | MySQL |
+| Local Development Environment | Laragon |
+| Version Control | Git & GitHub |
+
+### Database Configuration
+
+Database menggunakan MySQL yang dijalankan melalui Laragon pada lingkungan pengembangan lokal.
+
+Backend menggunakan Prisma ORM untuk mengelola operasi database.
+
+Frontend berkomunikasi dengan database melalui backend REST API dan tidak mengakses database secara langsung.
+
+## 6. MVP Scope
+
+Versi awal sistem mencakup:
+
+1. Autentikasi dan pengelolaan role pengguna.
+2. CRUD kategori produk.
+3. CRUD data produk.
+4. CRUD kriteria kualitas.
+5. Tiga metode evaluasi: Rating, Numeric, dan Pass/Fail.
+6. Perhitungan status setiap kriteria.
+7. Perhitungan status akhir evaluasi.
+8. Penyimpanan riwayat evaluasi.
+9. Dashboard dan laporan sederhana.
+
+Fitur di luar daftar tersebut dapat dikembangkan pada tahap berikutnya.
+
+## 7. Acceptance Criteria
+
+Sistem dinyatakan memenuhi kebutuhan MVP apabila:
+
+- Admin dapat mengelola kategori dan produk.
+- Admin dapat membuat kriteria kualitas dengan tiga metode evaluasi.
+- Evaluator dapat melakukan evaluasi terhadap produk.
+- Sistem dapat memvalidasi hasil setiap kriteria.
+- Sistem dapat menentukan status PASS, FAIL, atau INCOMPLETE dengan benar.
+- Kriteria opsional tidak memengaruhi status akhir.
+- Hasil evaluasi tersimpan dalam database.
+- Riwayat evaluasi dapat ditampilkan kembali.
+- Perubahan standar kriteria tidak mengubah hasil evaluasi historis.
+- Pengguna hanya dapat mengakses fitur sesuai role.
+
+## 8. Assumptions and Constraints
+
+### Assumptions
+
+- Produk yang digunakan dapat berupa data simulasi atau fiktif.
+- Setiap produk memiliki kriteria kualitas masing-masing.
+- Kriteria dapat bersifat wajib atau opsional.
+- Evaluasi dilakukan oleh pengguna yang terdaftar.
+- Backend menjadi sumber utama perhitungan hasil evaluasi.
+- Detail evaluasi menyimpan snapshot kriteria saat evaluasi dilakukan.
+
+### Constraints
+
+- Pengembangan dilakukan dengan Next.js dan NestJS.
+- Database menggunakan MySQL melalui Laragon untuk development lokal.
+- Komunikasi frontend dan backend menggunakan REST API.
+- Pengelolaan database menggunakan Prisma ORM.
+- Implementasi awal berfokus pada kebutuhan MVP.
+
+## 9. Future Development
+
+Fitur berikut dapat dipertimbangkan untuk pengembangan selanjutnya:
+
+- Template kriteria kualitas yang dapat digunakan ulang.
+- Ekspor laporan ke PDF dan Excel.
+- Grafik tren kualitas produk.
+- Riwayat perubahan kriteria.
+- Persetujuan hasil evaluasi oleh supervisor.
+- Deployment aplikasi ke server agar dapat diakses secara online.

@@ -1,119 +1,261 @@
-# AGENTS.md
+# AI Coding Agent Instructions
 
-Panduan kerja untuk AI coding agent dan developer pada repository Sistem
-Manajemen Kualitas Produk.
+**Project:** Sistem Manajemen Kualitas Produk  
+**Version:** 0.2
 
-## 1. Baca Konteks Sebelum Mengubah Kode
+## 1. Project Overview
 
-Sebelum implementasi, baca: 1. `docs/prd.md` 2. `docs/design-system.md`
-3. `docs/architecture.md`
+Proyek ini adalah aplikasi web Sistem Manajemen Kualitas Produk untuk mengelola data produk, kategori, kriteria kualitas, evaluasi, dan laporan hasil evaluasi.
 
-Jika dokumen belum menjawab aturan bisnis, jangan mengarang keputusan.
-Catat pertanyaan dan minta konfirmasi.
+Produk yang digunakan dapat berupa data simulasi atau fiktif.
 
-## 2. Prinsip Umum
+Sistem tidak mencakup manajemen stok, gudang, produksi, maupun transaksi penjualan.
 
--   Ikuti stack yang sudah ditentukan: Next.js, NestJS, TypeScript,
-    Prisma, Supabase PostgreSQL.
--   Pertahankan struktur monorepo dengan folder root `frontend/` dan
-    `backend/`.
--   Utamakan solusi sederhana, terbaca, dan mudah diuji.
--   Hindari abstraksi berlebihan untuk proyek yang dikerjakan satu
-    developer.
--   Jangan mengganti stack atau arsitektur tanpa persetujuan.
--   Jangan menambahkan dependency jika fitur dapat dibuat secara wajar
-    tanpa dependency tersebut.
--   Jangan menggunakan `any` kecuali benar-benar diperlukan dan
-    alasannya jelas.
+## 2. Documentation Priority
 
-## 3. Aturan Frontend
+Sebelum mengembangkan fitur, baca dokumentasi berikut:
 
--   Gunakan Next.js App Router.
--   Gunakan TypeScript.
--   Server Component adalah default.
--   Tambahkan `"use client"` hanya jika membutuhkan state, event
-    handler, atau API browser.
--   Semua komunikasi data aplikasi dilakukan melalui REST API NestJS.
--   Jangan mengakses Supabase PostgreSQL langsung dari browser.
--   Pisahkan komponen umum di `src/components/` dan kode spesifik fitur
-    di `src/features/`.
--   Ikuti design system dan sediakan loading, empty, error, serta
-    success state.
+1. `docs/prd.md` — kebutuhan dan ruang lingkup sistem.
+2. `docs/architecture.md` — arsitektur dan struktur teknis.
+3. `docs/design-system.md` — pedoman desain antarmuka.
+4. `agents.md` — instruksi pengembangan.
 
-## 4. Aturan Backend
+Jika terdapat konflik, prioritaskan PRD untuk kebutuhan bisnis dan Architecture untuk keputusan teknis.
 
--   Gunakan struktur modular NestJS.
--   Controller menangani request/response HTTP.
--   Service menangani aturan bisnis.
--   DTO menangani validasi input.
--   Gunakan PrismaService untuk akses database.
--   Validasi seluruh input dari client.
--   Evaluasi kualitas harus dilakukan di backend.
--   Gunakan status HTTP dan format error secara konsisten.
+Jangan membuat fitur di luar ruang lingkup tanpa persetujuan pengguna.
 
-## 5. Database
+## 3. Technology Stack
 
--   Perubahan schema harus disertai migration.
--   Jangan mengubah migration lama yang sudah diterapkan pada database
-    bersama; buat migration baru.
--   Gunakan constraint database untuk integritas data.
--   Pertimbangkan histori dan snapshot standar kualitas agar perubahan
-    standar tidak mengubah hasil inspeksi lama.
--   Jangan melakukan hard delete terhadap data historis tanpa aturan
-    bisnis yang jelas.
+### Frontend
+- Next.js
+- TypeScript
+- Tailwind CSS
 
-## 6. Keamanan
+### Backend
+- NestJS
+- TypeScript
+- REST API
+- Prisma ORM
 
--   Jangan menampilkan atau mencatat secret.
--   Jangan commit file `.env` atau `.env.local`.
--   Jangan mengekspos kredensial database melalui variabel
-    `NEXT_PUBLIC_`.
--   Hash password jika autentikasi lokal digunakan.
--   Periksa otorisasi di backend, bukan hanya menyembunyikan tombol di
-    frontend.
--   Batasi CORS ke origin yang diperlukan.
+### Database
+- MySQL
+- Laragon sebagai lingkungan database lokal
 
-## 7. Alur Kerja Setiap Tugas
+Frontend dan backend harus berada dalam direktori terpisah.
 
-1.  Periksa struktur dan file yang sudah ada.
-2.  Baca dokumentasi terkait.
-3.  Identifikasi kebutuhan dan kriteria selesai.
-4.  Buat perubahan terkecil yang menyelesaikan tugas.
-5.  Tambahkan atau perbarui test yang relevan.
-6.  Jalankan formatter, lint, type-check, test, atau build yang
-    tersedia.
-7.  Perbaiki error yang muncul.
-8.  Perbarui dokumentasi bila perilaku atau keputusan berubah.
-9.  Laporkan file yang berubah, keputusan penting, dan hasil
-    pemeriksaan.
+## 4. Project Structure
 
-## 8. Konvensi Kode
+Gunakan struktur repository berikut:
 
--   Gunakan nama variabel dan fungsi yang deskriptif.
--   Gunakan konsistensi penamaan file dan class sesuai konvensi
-    framework.
--   Hindari fungsi terlalu besar.
--   Hindari duplikasi logic bisnis.
--   Jangan menaruh business logic di controller atau komponen
-    presentasi.
--   Tangani error secara eksplisit.
+```text
+sistem-manajemen-kualitas/
+├── frontend/
+├── backend/
+├── docs/
+│   ├── prd.md
+│   ├── architecture.md
+│   └── design-system.md
+├── agents.md
+├── README.md
+└── .gitignore
+```
 
-## 9. Git
+Jangan mengubah struktur utama tanpa alasan teknis yang jelas dan persetujuan pengguna.
 
--   Gunakan commit kecil dengan pesan yang menjelaskan perubahan.
--   Jangan memasukkan file hasil build, dependency, atau secret.
--   Periksa `git status` sebelum commit.
+## 5. Development Principles
 
-## 10. Definition of Done
+### 5.1 General Rules
 
-Tugas dinyatakan selesai jika: - Sesuai PRD dan keputusan arsitektur. -
-Tidak merusak fitur yang sudah ada. - TypeScript/lint/build yang relevan
-lolos. - Test relevan tersedia dan lolos, atau keterbatasannya
-dijelaskan. - Dokumentasi diperbarui jika diperlukan. - Tidak ada secret
-yang ikut ter-commit.
+- Gunakan TypeScript.
+- Tulis kode yang sederhana dan mudah dipahami.
+- Hindari duplikasi kode.
+- Gunakan reusable components dan services.
+- Terapkan separation of concerns.
+- Hindari overengineering.
+- Jangan menambahkan dependency tanpa kebutuhan jelas.
+- Jangan mengubah konfigurasi yang tidak berkaitan dengan tugas.
 
-## 11. Pelaporan
+### 5.2 Frontend Rules
 
-Setelah menyelesaikan tugas, laporkan: - Ringkasan implementasi. - File
-yang dibuat/diubah. - Perintah pemeriksaan yang dijalankan. - Hasil
-test/build secara jujur. - Hal yang masih perlu dikonfirmasi.
+- Gunakan Next.js App Router.
+- Gunakan Tailwind CSS untuk styling.
+- Pisahkan UI components, services, hooks, dan types.
+- Gunakan reusable components.
+- Gunakan REST API untuk komunikasi dengan backend.
+- Jangan mengakses database langsung dari frontend.
+- Hindari menempatkan business logic utama di komponen UI.
+- Implementasikan loading, error, dan empty states.
+
+### 5.3 Backend Rules
+
+- Gunakan NestJS dengan pendekatan modular.
+- Pisahkan Controller, Service, dan DTO.
+- Controller bertanggung jawab menerima request dan mengirim response.
+- Service menangani business logic.
+- DTO digunakan untuk validasi request.
+- Gunakan Prisma untuk operasi database.
+- Terapkan autentikasi dan otorisasi sesuai role.
+- Jangan menempatkan business logic utama di Controller.
+
+## 6. Database Rules
+
+- Gunakan MySQL.
+- Gunakan Prisma ORM.
+- Simpan konfigurasi database melalui environment variables.
+- Jangan menulis credential secara langsung dalam source code.
+- Gunakan migration untuk perubahan struktur database.
+- Hindari mengubah atau menghapus data tanpa kebutuhan yang jelas.
+- Gunakan relasi dan constraint untuk menjaga integritas data.
+
+Contoh environment variable:
+
+```env
+DATABASE_URL="mysql://root:@localhost:3306/sistem_kualitas"
+```
+
+Jangan commit file `.env` ke repository.
+
+## 7. Quality Evaluation Business Rules
+
+Aturan evaluasi merupakan bagian penting dari sistem dan tidak boleh diubah tanpa persetujuan pengguna.
+
+### 7.1 Evaluation Methods
+
+Sistem mendukung tiga metode:
+
+**Rating 1–5**
+- Input berupa angka 1 sampai 5.
+- PASS jika nilai aktual memenuhi atau melebihi nilai minimum.
+- FAIL jika nilai aktual di bawah nilai minimum.
+
+**Numeric**
+- Input berupa angka.
+- Standar dapat berupa minimum, maksimum, atau rentang.
+- PASS jika nilai aktual memenuhi standar.
+- FAIL jika nilai aktual tidak memenuhi standar.
+
+**Pass/Fail**
+- Evaluator memilih PASS atau FAIL secara langsung.
+
+### 7.2 Final Evaluation Status
+
+Gunakan aturan berikut:
+
+| Condition | Result |
+|---|---|
+| Ada kriteria wajib yang belum diisi | INCOMPLETE |
+| Semua kriteria wajib selesai dan ada yang FAIL | FAIL |
+| Semua kriteria wajib selesai dan seluruhnya PASS | PASS |
+
+Ketentuan tambahan:
+- Kriteria opsional tidak memengaruhi hasil akhir.
+- Backend menjadi sumber utama perhitungan.
+- Frontend hanya menampilkan hasil dari backend.
+- Rata-rata rating bukan penentu status akhir.
+- Validasi input harus dilakukan di backend.
+
+### 7.3 Historical Evaluation
+
+- Simpan snapshot kriteria saat evaluasi dilakukan.
+- Perubahan nama atau standar kriteria tidak boleh mengubah riwayat evaluasi.
+- Jangan menghapus riwayat evaluasi ketika data master berubah.
+
+## 8. API Development Rules
+
+- Gunakan REST API.
+- Gunakan HTTP methods sesuai fungsinya.
+- Gunakan status code HTTP yang tepat.
+- Validasi request menggunakan DTO.
+- Gunakan response structure yang konsisten.
+- Tangani error dengan mekanisme exception NestJS.
+- Jangan mengirim informasi sensitif dalam response.
+
+Contoh endpoint:
+
+```text
+/api/auth
+/api/users
+/api/categories
+/api/products
+/api/quality-criteria
+/api/evaluations
+/api/dashboard
+/api/reports
+```
+
+Endpoint tersebut merupakan rancangan awal dan dapat disesuaikan saat implementasi.
+
+## 9. UI/UX Rules
+
+- Ikuti `docs/design-system.md`.
+- Gunakan desain dashboard minimalis dan modern.
+- Gunakan warna dan typography secara konsisten.
+- Pastikan tampilan responsif.
+- Gunakan badge untuk status PASS, FAIL, dan INCOMPLETE.
+- Sediakan feedback untuk setiap aksi pengguna.
+- Hindari elemen dekoratif yang tidak memiliki fungsi.
+
+## 10. Security Rules
+
+- Password harus di-hash sebelum disimpan.
+- Jangan menyimpan secret dalam source code.
+- Lindungi endpoint berdasarkan role.
+- Validasi semua input dari pengguna.
+- Jangan mempercayai hasil evaluasi yang dihitung oleh frontend.
+- Jangan mengekspos credential database atau JWT secret.
+- Jangan menonaktifkan mekanisme keamanan hanya untuk mengatasi error.
+
+## 11. Git and Code Management
+
+- Gunakan nama branch yang deskriptif.
+- Gunakan commit message yang jelas.
+- Jangan menghapus perubahan pengguna yang sudah ada.
+- Jangan melakukan force push tanpa persetujuan.
+- Jangan commit file `.env`, build output, atau dependency folder.
+- Periksa perubahan sebelum menyelesaikan tugas.
+
+Contoh commit message:
+
+```text
+feat: add product management
+fix: correct evaluation calculation
+refactor: improve evaluation service
+docs: update project architecture
+```
+
+## 12. Agent Workflow
+
+Setiap kali menerima tugas:
+
+1. Baca dokumentasi yang relevan.
+2. Periksa struktur dan kode yang sudah ada.
+3. Identifikasi file yang perlu diubah.
+4. Jelaskan rencana singkat sebelum perubahan besar.
+5. Implementasikan solusi paling sederhana yang memenuhi kebutuhan.
+6. Jalankan pemeriksaan atau pengujian yang relevan.
+7. Periksa apakah perubahan merusak fitur lain.
+8. Laporkan file yang diubah dan hasil pengujian.
+
+### Important Restrictions
+
+- Jangan membuat fitur yang tidak diminta.
+- Jangan mengubah business rules tanpa persetujuan.
+- Jangan mengganti technology stack tanpa persetujuan.
+- Jangan membuat asumsi database schema yang bertentangan dengan dokumentasi.
+- Jangan mengklaim pengujian berhasil jika belum dijalankan.
+- Jika terdapat requirement yang ambigu, tanyakan sebelum mengambil keputusan yang berdampak besar.
+
+## 13. Final Instruction
+
+Prioritaskan:
+1. Correctness.
+2. Simplicity.
+3. Maintainability.
+4. Security.
+5. Consistency with project documentation.
+
+Bangun sistem secara bertahap. Selesaikan dan validasi satu fitur sebelum melanjutkan ke fitur berikutnya.
+
+---
+
+**End of Document**

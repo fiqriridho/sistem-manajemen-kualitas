@@ -1,239 +1,346 @@
-# Architecture Document
+# System Architecture
 
-**Proyek:** Sistem Manajemen Kualitas Produk\
-**Versi:** 0.1\
+**Project:** Sistem Manajemen Kualitas Produk  
+**Version:** 0.2
 **Status:** Draft
 
-## 1. Tujuan Arsitektur
+## 1. Overview
 
-Dokumen ini menjelaskan struktur teknis awal. Arsitektur dibuat
-sederhana agar dapat dikembangkan oleh satu developer, tetapi tetap
-memisahkan UI, API, dan akses database.
+Sistem Manajemen Kualitas Produk menggunakan arsitektur **Client-Server** dengan pendekatan **Monolithic Backend**.
 
-## 2. Keputusan Teknologi
+Aplikasi terdiri dari tiga bagian utama:
 
-  Bagian       Teknologi
-  ------------ ------------------------------------------------------
-  Frontend     Next.js + TypeScript
-  Styling      Tailwind CSS
-  Backend      NestJS + TypeScript
-  API          REST
-  ORM          Prisma
-  Database     Supabase PostgreSQL
-  Repository   Monorepo dengan folder frontend dan backend terpisah
+1. **Frontend:** Menampilkan antarmuka dan menangani interaksi pengguna.
+2. **Backend:** Menangani autentikasi, validasi, business logic, dan komunikasi dengan database.
+3. **Database:** Menyimpan data pengguna, produk, kategori, kriteria kualitas, dan hasil evaluasi.
 
-Supabase pada tahap awal dipakai sebagai layanan PostgreSQL terkelola.
-Frontend tidak mengakses database secara langsung. Semua aturan bisnis
-dan akses database berada di NestJS.
+Frontend dan backend berkomunikasi melalui REST API. Frontend tidak diperbolehkan mengakses database secara langsung.
 
-## 3. Gambaran Arsitektur
+## 2. Technology Stack
 
-``` text
-Browser
-   |
-   v
-Next.js Frontend
-   |
-   | HTTPS / REST JSON
-   v
-NestJS Backend
-   |
-   | Prisma ORM
-   v
-Supabase PostgreSQL
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js |
+| Language | TypeScript |
+| Styling | Tailwind CSS |
+| Backend | NestJS |
+| API | REST API |
+| ORM | Prisma |
+| Database | MySQL |
+| Local Development Environment | Laragon |
+| Version Control | Git & GitHub |
+
+## 3. High-Level Architecture
+
+```mermaid
+flowchart TB
+    U[User]
+    F[Frontend - Next.js]
+    A[Backend - NestJS]
+    S[Business Logic & Validation]
+    P[Prisma ORM]
+    D[(MySQL - Laragon)]
+
+    U --> F
+    F -->|HTTP Request / Response| A
+    A --> S
+    S --> P
+    P --> D
+    D --> P
 ```
 
-## 4. Struktur Repository
+### Component Responsibilities
 
-Gunakan satu repository Git dengan dua aplikasi yang berdiri sendiri.
-`frontend/` dan `backend/` masing-masing memiliki `package.json`,
-dependency, konfigurasi, dan perintah development sendiri.
+**Frontend — Next.js**
+- Menampilkan halaman dashboard.
+- Menampilkan dan mengelola data produk.
+- Menampilkan kategori dan kriteria kualitas.
+- Menyediakan formulir evaluasi.
+- Menampilkan hasil evaluasi.
+- Mengirim request ke backend melalui REST API.
 
-``` text
+**Backend — NestJS**
+- Mengelola autentikasi dan otorisasi.
+- Menyediakan endpoint REST API.
+- Memvalidasi request.
+- Menjalankan business logic.
+- Menghitung status setiap kriteria.
+- Menghitung status akhir evaluasi.
+- Mengelola transaksi database.
+
+**Database — MySQL**
+- Menyimpan data pengguna.
+- Menyimpan kategori dan produk.
+- Menyimpan kriteria kualitas.
+- Menyimpan evaluasi dan detail hasil evaluasi.
+
+## 4. Backend Module Structure
+
+Backend menggunakan pendekatan modular berdasarkan domain bisnis.
+
+| Module | Responsibility |
+|---|---|
+| Auth | Autentikasi dan otorisasi pengguna |
+| Users | Pengelolaan pengguna |
+| Categories | Pengelolaan kategori produk |
+| Products | Pengelolaan data produk |
+| Quality Criteria | Pengelolaan kriteria kualitas |
+| Evaluations | Proses evaluasi kualitas produk |
+| Dashboard | Penyediaan ringkasan data |
+| Reports | Penyediaan laporan evaluasi |
+
+Setiap module memiliki tanggung jawab yang terpisah agar kode lebih mudah dikembangkan dan dipelihara.
+
+## 5. Evaluation Architecture
+
+Proses evaluasi dilakukan di backend sebagai sumber utama perhitungan hasil.
+
+### 5.1 Evaluation Methods
+
+Sistem mendukung tiga metode evaluasi:
+
+**A. Rating 1–5**
+
+Evaluator memberikan nilai antara 1 sampai 5.
+
+Status kriteria:
+- PASS jika nilai aktual memenuhi atau melebihi nilai minimum.
+- FAIL jika nilai aktual di bawah nilai minimum.
+
+**B. Numeric**
+
+Evaluator memasukkan nilai numerik.
+
+Kriteria dapat menggunakan:
+- Minimum value.
+- Maximum value.
+- Range value.
+
+Status PASS diberikan jika nilai aktual memenuhi standar yang telah dikonfigurasi.
+
+**C. Pass/Fail**
+
+Evaluator memilih salah satu status:
+- PASS
+- FAIL
+
+### 5.2 Final Evaluation Status
+
+Backend menentukan hasil akhir berdasarkan seluruh kriteria wajib.
+
+| Condition | Final Status |
+|---|---|
+| Masih ada kriteria wajib yang belum diisi | INCOMPLETE |
+| Semua kriteria wajib selesai dan ada yang FAIL | FAIL |
+| Semua kriteria wajib selesai dan seluruhnya PASS | PASS |
+
+Kriteria opsional tidak memengaruhi status akhir evaluasi.
+
+Nilai rata-rata rating hanya digunakan sebagai informasi tambahan, bukan penentu kelulusan.
+
+### 5.3 Evaluation Flow
+
+```mermaid
+flowchart TD
+    A[Evaluator selects product]
+    B[Backend retrieves active criteria]
+    C[Evaluator fills evaluation form]
+    D[Backend validates input]
+    E[Backend evaluates each criterion]
+    F[Backend calculates final status]
+    G[Save evaluation and details]
+    H[Display evaluation result]
+
+    A --> B --> C --> D --> E --> F --> G --> H
+```
+
+## 6. Database Architecture
+
+Database menggunakan MySQL sebagai sistem manajemen basis data relasional. Prisma digunakan sebagai ORM untuk mengelola komunikasi antara backend dan database.
+
+### Main Entities
+
+| Entity | Description |
+|---|---|
+| User | Menyimpan informasi pengguna |
+| Category | Menyimpan kategori produk |
+| Product | Menyimpan informasi produk |
+| QualityCriteria | Menyimpan standar penilaian kualitas |
+| Evaluation | Menyimpan data utama evaluasi |
+| EvaluationDetail | Menyimpan hasil setiap kriteria dalam evaluasi |
+
+### Entity Relationships
+
+```mermaid
+erDiagram
+    USER ||--o{ EVALUATION : performs
+    CATEGORY ||--o{ PRODUCT : contains
+    PRODUCT ||--o{ QUALITY_CRITERIA : has
+    PRODUCT ||--o{ EVALUATION : receives
+    EVALUATION ||--|{ EVALUATION_DETAIL : contains
+    QUALITY_CRITERIA ||--o{ EVALUATION_DETAIL : references
+
+    USER {
+        int id PK
+        string name
+        string email
+        string password
+        string role
+    }
+
+    CATEGORY {
+        int id PK
+        string name
+        string description
+    }
+
+    PRODUCT {
+        int id PK
+        int category_id FK
+        string code
+        string name
+        string description
+        string status
+    }
+
+    QUALITY_CRITERIA {
+        int id PK
+        int product_id FK
+        string name
+        string method
+        string standard
+        boolean is_required
+        boolean is_active
+    }
+
+    EVALUATION {
+        int id PK
+        int product_id FK
+        int user_id FK
+        string status
+        datetime evaluated_at
+    }
+
+    EVALUATION_DETAIL {
+        int id PK
+        int evaluation_id FK
+        int criteria_id FK
+        string criteria_name
+        string method
+        string standard_snapshot
+        string actual_value
+        string result
+    }
+```
+
+**Catatan:** ERD merupakan rancangan awal. Tipe data, constraint, dan relasi final akan disesuaikan saat implementasi Prisma Schema.
+
+### Historical Data
+
+EvaluationDetail menyimpan snapshot informasi kriteria saat evaluasi dilakukan.
+
+Tujuannya:
+- Perubahan nama kriteria tidak mengubah riwayat evaluasi.
+- Perubahan standar tidak mengubah hasil evaluasi sebelumnya.
+- Riwayat evaluasi tetap dapat ditampilkan meskipun kriteria master berubah.
+
+## 7. Project Directory Structure
+
+Struktur repository menggunakan monorepo sederhana dengan frontend dan backend terpisah.
+
+```text
 sistem-manajemen-kualitas/
-├── frontend/                  # Next.js
-│   ├── public/
+│
+├── frontend/
 │   ├── src/
 │   │   ├── app/
 │   │   ├── components/
-│   │   ├── features/
-│   │   ├── lib/
-│   │   └── types/
+│   │   ├── services/
+│   │   ├── hooks/
+│   │   ├── types/
+│   │   └── lib/
+│   ├── public/
 │   ├── package.json
-│   └── .env.local
-├── backend/                   # NestJS
-│   ├── prisma/
-│   │   ├── schema.prisma
-│   │   └── migrations/
+│   └── .env.example
+│
+├── backend/
 │   ├── src/
-│   │   ├── common/
-│   │   ├── config/
-│   │   ├── prisma/
-│   │   ├── modules/
-│   │   │   ├── auth/
-│   │   │   ├── products/
-│   │   │   ├── categories/
-│   │   │   ├── quality-standards/
-│   │   │   ├── inspections/
-│   │   │   └── defects/
-│   │   ├── app.module.ts
+│   │   ├── auth/
+│   │   ├── users/
+│   │   ├── categories/
+│   │   ├── products/
+│   │   ├── quality-criteria/
+│   │   ├── evaluations/
+│   │   ├── dashboard/
+│   │   ├── reports/
 │   │   └── main.ts
+│   ├── prisma/
+│   │   └── schema.prisma
 │   ├── package.json
-│   └── .env
+│   └── .env.example
+│
 ├── docs/
 │   ├── prd.md
-│   ├── design-system.md
-│   └── architecture.md
+│   ├── architecture.md
+│   └── design-system.md
+│
 ├── agents.md
 ├── README.md
 └── .gitignore
 ```
 
-## 5. Tanggung Jawab Tiap Bagian
+Struktur dapat berkembang sesuai kebutuhan implementasi.
 
-### Frontend
+## 8. Environment Configuration
 
--   Menampilkan halaman dan komponen UI.
--   Mengelola state tampilan dan interaksi pengguna.
--   Memanggil REST API backend.
--   Tidak menyimpan secret database.
--   Tidak menjalankan aturan evaluasi kualitas sebagai sumber kebenaran.
+Konfigurasi koneksi database dan secret disimpan melalui environment variables.
 
-### Backend
+**Frontend**
+- `NEXT_PUBLIC_API_URL`
 
--   Menyediakan REST API.
--   Memvalidasi request melalui DTO.
--   Menjalankan aturan bisnis.
--   Memeriksa autentikasi dan otorisasi.
--   Mengakses database melalui Prisma.
+**Backend**
+- `DATABASE_URL`
+- `JWT_SECRET`
+- `PORT`
 
-### Database
+Contoh koneksi MySQL lokal:
 
--   Menyimpan data secara persisten.
--   Menegakkan constraint seperti unique dan foreign key.
--   Dikelola melalui Prisma migration.
-
-## 6. Struktur Modul Backend
-
-Modul awal: - `auth`: autentikasi dan sesi/token jika dibutuhkan. -
-`products`: CRUD produk. - `categories`: CRUD kategori. -
-`quality-standards`: standar dan parameter kualitas. - `inspections`:
-inspeksi dan detail pengukuran. - `defects`: ketidaksesuaian dan
-tindakan korektif.
-
-Pola modul NestJS:
-
-``` text
-products/
-├── products.module.ts
-├── products.controller.ts
-├── products.service.ts
-└── dto/
-    ├── create-product.dto.ts
-    └── update-product.dto.ts
+```env
+DATABASE_URL="mysql://root:@localhost:3306/sistem_kualitas"
 ```
 
-Controller menangani HTTP. Service berisi aturan bisnis. DTO memvalidasi
-input. PrismaService menangani akses database.
+Contoh konfigurasi Prisma:
 
-## 7. Struktur Frontend
-
-Gunakan Next.js App Router. - `src/app/`: route dan layout. -
-`src/components/`: komponen UI umum. - `src/features/`: komponen dan
-logic per fitur. - `src/lib/`: API client dan helper. - `src/types/`:
-tipe TypeScript bersama di frontend.
-
-Server Components menjadi default. Gunakan Client Components hanya
-ketika membutuhkan interaksi browser atau state interaktif.
-
-## 8. Konvensi API
-
-Base path lokal: `/api`. Contoh endpoint: \| Method \| Endpoint \|
-Fungsi \| \|---\|---\|---\| \| GET \| `/api/products` \| Daftar produk
-\| \| GET \| `/api/products/:id` \| Detail produk \| \| POST \|
-`/api/products` \| Tambah produk \| \| PATCH \| `/api/products/:id` \|
-Ubah produk \| \| DELETE \| `/api/products/:id` \| Hapus produk \| \|
-GET \| `/api/categories` \| Daftar kategori \|
-
-Gunakan status HTTP secara konsisten: 200 untuk sukses, 201 untuk data
-dibuat, 204 untuk sukses tanpa body, 400 untuk validasi gagal, 401 untuk
-belum terautentikasi, 403 untuk tidak berwenang, 404 untuk data tidak
-ditemukan, dan 500 untuk kesalahan server.
-
-## 9. Validasi dan Keamanan
-
--   Aktifkan `ValidationPipe` global di NestJS.
--   Gunakan `whitelist` dan `forbidNonWhitelisted`.
--   Jangan percaya data dari frontend.
--   Simpan secret di environment variable.
--   Jangan commit `.env`.
--   Batasi CORS ke origin frontend yang diizinkan.
--   Jika autentikasi lokal dipakai, hash password dengan algoritma yang
-    sesuai.
--   Terapkan pemeriksaan role/permission di backend.
--   Jangan pernah mengekspos kredensial database atau service-role key
-    ke browser.
-
-## 10. Database dan Prisma
-
--   Gunakan Prisma schema sebagai representasi model data.
--   Gunakan migration untuk perubahan struktur.
--   Simpan connection string di environment variable backend.
--   Untuk Supabase, pilih connection mode yang sesuai dengan runtime dan
-    kebutuhan migration. Periksa panduan Prisma dan Supabase terkini
-    sebelum menetapkan format `DATABASE_URL` dan `DIRECT_URL`, karena
-    konfigurasi dapat berbeda menurut versi Prisma dan jenis koneksi.
--   Jangan menjalankan migration produksi secara sembarang dari
-    environment development.
-
-## 11. Environment Variable
-
-Contoh nama variabel, bukan nilai rahasia:
-
-Backend `.env`:
-
-``` env
-DATABASE_URL="postgresql://..."
-DIRECT_URL="postgresql://..."
-PORT=3001
-FRONTEND_URL="http://localhost:3000"
-JWT_SECRET="replace-with-a-long-random-secret"
+```prisma
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
 ```
 
-Frontend `.env.local`:
+Database `sistem_kualitas` harus dibuat terlebih dahulu melalui Laragon atau MySQL client.
 
-``` env
-NEXT_PUBLIC_API_URL="http://localhost:3001/api"
-```
+File `.env` tidak boleh dimasukkan ke repository. Gunakan `.env.example` sebagai dokumentasi konfigurasi.
 
-`JWT_SECRET` hanya diperlukan jika autentikasi JWT diterapkan. Jangan
-menaruh `DATABASE_URL`, `DIRECT_URL`, atau `JWT_SECRET` dalam variabel
-`NEXT_PUBLIC_`.
+## 9. Security Considerations
 
-## 12. Pengembangan Lokal
+- Validasi input dilakukan di backend.
+- Password harus disimpan dalam bentuk hash.
+- Endpoint tertentu harus dilindungi autentikasi.
+- Otorisasi dilakukan berdasarkan role pengguna.
+- Secret dan credential tidak boleh ditulis langsung dalam source code.
+- Frontend tidak boleh mengakses database secara langsung.
+- Backend menjadi sumber kebenaran untuk hasil evaluasi.
 
-Jalankan frontend dan backend di terminal terpisah: - Frontend:
-`cd frontend` lalu `npm run dev` (umumnya port 3000). - Backend:
-`cd backend` lalu `npm run start:dev` (atur port 3001). - Pastikan
-`NEXT_PUBLIC_API_URL` mengarah ke backend. - Pastikan CORS backend
-mengizinkan origin frontend.
+## 10. Architecture Principles
 
-## 13. Strategi Implementasi Bertahap
+1. **Separation of Concerns:** Setiap layer memiliki tanggung jawab yang jelas.
+2. **Single Source of Truth:** Backend menentukan hasil akhir evaluasi.
+3. **Modular Design:** Backend dibagi berdasarkan domain bisnis.
+4. **Data Integrity:** Riwayat evaluasi harus tetap konsisten.
+5. **Maintainability:** Struktur kode dibuat agar mudah dikembangkan.
+6. **Simplicity:** Implementasi MVP menghindari kompleksitas yang belum diperlukan.
 
-1.  Inisialisasi repository dan dua aplikasi.
-2.  Siapkan Supabase PostgreSQL dan Prisma.
-3.  Buat model Product minimal.
-4.  Implementasikan CRUD Product pada NestJS.
-5.  Buat daftar dan form produk di Next.js.
-6.  Integrasikan API, validasi, dan error state.
-7.  Setelah alur ini stabil, lanjutkan kategori, standar, inspeksi, dan
-    modul lain.
+---
 
-## 14. Catatan Keputusan yang Belum Final
-
--   Versi Prisma dan format konfigurasi koneksi.
--   Strategi autentikasi: JWT NestJS atau solusi lain.
--   Soft delete versus hard delete.
--   Versioning standar kualitas.
--   Bentuk model inspeksi per unit/batch/sampel.
--   Strategi upload bukti foto/dokumen.
+**End of Document**
