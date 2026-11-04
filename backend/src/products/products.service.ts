@@ -1,5 +1,6 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service.js';
+import type { AuthUser } from '../common/types/auth-user.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 
@@ -19,16 +20,22 @@ export class ProductsService {
     });
   }
 
-  async findAll() {
+  async findAll(user: AuthUser) {
     return this.prisma.products.findMany({
-      include: { categories: true, evaluations: true },
+      include: {
+        categories: true,
+        evaluations: { where: this.evaluationWhere(user) },
+      },
     });
   }
 
-  async findOne(id: string) {
+  async findOne(id: string, user: AuthUser) {
     const product = await this.prisma.products.findUnique({
       where: { id },
-      include: { categories: true, evaluations: true },
+      include: {
+        categories: true,
+        evaluations: { where: this.evaluationWhere(user) },
+      },
     });
     if (!product) {
       throw new NotFoundException(`Product dengan ID ${id} tidak ditemukan`);
@@ -73,5 +80,9 @@ export class ProductsService {
       where: { id },
     });
     return { message: 'Product berhasil dihapus' };
+  }
+
+  private evaluationWhere(user: AuthUser) {
+    return user.role === 'EVALUATOR' ? { evaluatorId: user.userId } : {};
   }
 }

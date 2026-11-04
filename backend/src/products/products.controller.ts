@@ -5,6 +5,8 @@ import { UpdateProductDto } from './dto/update-product.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
+import { CurrentUser } from '../common/decorators/current-user.decorator.js';
+import type { AuthUser } from '../common/types/auth-user.js';
 
 @Controller('products')
 @UseGuards(JwtAuthGuard, RolesGuard)
@@ -18,13 +20,13 @@ export class ProductsController {
   }
 
   @Get()
-  findAll() {
-    return this.productsService.findAll();
+  findAll(@CurrentUser() user: AuthUser) {
+    return this.productsService.findAll(user);
   }
 
   @Get(':id')
-  findOne(@Param('id') id: string) {
-    return this.productsService.findOne(id);
+  findOne(@Param('id') id: string, @CurrentUser() user: AuthUser) {
+    return this.productsService.findOne(id, user);
   }
 
   @Patch(':id')
