@@ -5,22 +5,31 @@ import type { AuthUser } from '../common/types/auth-user.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
 import { ProductQueryDto } from './dto/product-query.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
+import { rethrowPrismaError } from '../common/prisma-error.js';
 
 @Injectable()
 export class ProductsService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateProductDto) {
-    return this.prisma.products.create({
-      data: {
-        code: data.code,
-        name: data.name,
-        slug: data.slug,
-        description: data.description,
-        categoryId: data.categoryId,
-        status: data.status,
-      },
-    });
+    try {
+      return await this.prisma.products.create({
+        data: {
+          code: data.code,
+          name: data.name,
+          slug: data.slug,
+          description: data.description,
+          categoryId: data.categoryId,
+          status: data.status,
+        },
+      });
+    } catch (error) {
+      rethrowPrismaError(error, {
+        duplicate: 'Produk dengan kode atau slug tersebut sudah ada.',
+        foreignKey: `Kategori dengan ID ${data.categoryId} tidak ditemukan.`,
+        foreignKeyStatus: 400,
+      });
+    }
   }
 
   async findAll(user: AuthUser, query: ProductQueryDto = {}) {
@@ -76,17 +85,26 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product dengan ID ${id} tidak ditemukan`);
     }
-    return this.prisma.products.update({
-      where: { id },
-      data: {
-        code: data.code,
-        name: data.name,
-        slug: data.slug,
-        description: data.description,
-        categoryId: data.categoryId,
-        status: data.status,
-      },
-    });
+    try {
+      return await this.prisma.products.update({
+        where: { id },
+        data: {
+          code: data.code,
+          name: data.name,
+          slug: data.slug,
+          description: data.description,
+          categoryId: data.categoryId,
+          status: data.status,
+        },
+      });
+    } catch (error) {
+      rethrowPrismaError(error, {
+        duplicate: 'Produk dengan kode atau slug tersebut sudah ada.',
+        notFound: `Product dengan ID ${id} tidak ditemukan`,
+        foreignKey: `Kategori dengan ID ${data.categoryId} tidak ditemukan.`,
+        foreignKeyStatus: 400,
+      });
+    }
   }
 
   async remove(id: string) {

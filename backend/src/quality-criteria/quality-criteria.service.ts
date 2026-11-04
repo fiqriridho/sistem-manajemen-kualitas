@@ -4,6 +4,7 @@ import { PrismaService } from '../common/prisma.service.js';
 import { parseQualityStandard, resolveQualityStandard } from '../common/quality-standard.js';
 import { CreateQualityCriteriaDto } from './dto/create-quality-criteria.dto.js';
 import { UpdateQualityCriteriaDto } from './dto/update-quality-criteria.dto.js';
+import { rethrowPrismaError } from '../common/prisma-error.js';
 
 @Injectable()
 export class QualityCriteriaService {
@@ -18,17 +19,26 @@ export class QualityCriteriaService {
     }
 
     const standard = parseQualityStandard(data.method, data.standard);
-    return this.prisma.quality_criteria.create({
-      data: {
-        productId: data.productId,
-        name: data.name,
-        description: data.description,
-        method: data.method,
-        standard: standard as Prisma.InputJsonValue,
-        isRequired: data.isRequired ?? true,
-        isActive: data.isActive ?? true,
-      },
-    });
+    try {
+      return await this.prisma.quality_criteria.create({
+        data: {
+          productId: data.productId,
+          name: data.name,
+          description: data.description,
+          method: data.method,
+          standard: standard as Prisma.InputJsonValue,
+          isRequired: data.isRequired ?? true,
+          isActive: data.isActive ?? true,
+        },
+      });
+    } catch (error) {
+      rethrowPrismaError(error, {
+        duplicate: 'Kriteria dengan nama tersebut sudah ada untuk produk ini.',
+        notFound: `Produk dengan ID ${data.productId} tidak ditemukan`,
+        foreignKey: `Produk dengan ID ${data.productId} tidak ditemukan`,
+        foreignKeyStatus: 404,
+      });
+    }
   }
 
   async findAll(productId?: string) {
@@ -72,18 +82,25 @@ export class QualityCriteriaService {
       standard: data.standard,
     });
 
-    return this.prisma.quality_criteria.update({
-      where: { id },
-      data: {
-        name: data.name,
-        description: data.description,
-        method: resolved.method,
-        standard: resolved.standard as Prisma.InputJsonValue,
-        isRequired: data.isRequired,
-        isActive: data.isActive,
-        updatedAt: new Date(),
-      },
-    });
+    try {
+      return await this.prisma.quality_criteria.update({
+        where: { id },
+        data: {
+          name: data.name,
+          description: data.description,
+          method: resolved.method,
+          standard: resolved.standard as Prisma.InputJsonValue,
+          isRequired: data.isRequired,
+          isActive: data.isActive,
+          updatedAt: new Date(),
+        },
+      });
+    } catch (error) {
+      rethrowPrismaError(error, {
+        duplicate: 'Kriteria dengan nama tersebut sudah ada untuk produk ini.',
+        notFound: `Kriteria dengan ID ${id} tidak ditemukan`,
+      });
+    }
   }
 
   async remove(id: string) {

@@ -2,18 +2,25 @@ import { Injectable, ConflictException, NotFoundException } from '@nestjs/common
 import { PrismaService } from '../common/prisma.service.js';
 import { CreateCategoryDto } from './dto/create-category.dto.js';
 import { UpdateCategoryDto } from './dto/update-category.dto.js';
+import { rethrowPrismaError } from '../common/prisma-error.js';
 
 @Injectable()
 export class CategoriesService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateCategoryDto) {
-    return this.prisma.categories.create({
-      data: {
-        name: data.name,
-        slug: data.slug,
-      },
-    });
+    try {
+      return await this.prisma.categories.create({
+        data: {
+          name: data.name,
+          slug: data.slug,
+        },
+      });
+    } catch (error) {
+      rethrowPrismaError(error, {
+        duplicate: 'Kategori dengan nama atau slug tersebut sudah ada.',
+      });
+    }
   }
 
   async findAll() {
@@ -35,13 +42,20 @@ export class CategoriesService {
     if (!category) {
       throw new NotFoundException(`Kategori dengan ID ${id} tidak ditemukan`);
     }
-    return this.prisma.categories.update({
-      where: { id },
-      data: {
-        name: data.name,
-        slug: data.slug,
-      },
-    });
+    try {
+      return await this.prisma.categories.update({
+        where: { id },
+        data: {
+          name: data.name,
+          slug: data.slug,
+        },
+      });
+    } catch (error) {
+      rethrowPrismaError(error, {
+        duplicate: 'Kategori dengan nama atau slug tersebut sudah ada.',
+        notFound: `Kategori dengan ID ${id} tidak ditemukan`,
+      });
+    }
   }
 
   async remove(id: string) {
