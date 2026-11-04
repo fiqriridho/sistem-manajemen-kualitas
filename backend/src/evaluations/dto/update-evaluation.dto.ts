@@ -1,28 +1,28 @@
-import { IsArray, IsEnum, IsNotEmpty, IsOptional, IsString } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  ArrayNotEmpty,
+  IsArray,
+  IsDefined,
+  IsNotEmpty,
+  IsObject,
+  IsString,
+  ValidateNested,
+} from 'class-validator';
 
-class EvaluationDetailDto {
+export class EvaluationDetailDto {
   @IsString()
   @IsNotEmpty()
   id: string;
 
-  @IsString()
-  @IsNotEmpty()
-  evaluationDetailId: string;
-
-  @IsNotEmpty()
-  actualValue: any;
-
-  @IsOptional()
-  @IsEnum(['PASS', 'FAIL'])
-  result?: 'PASS' | 'FAIL';
+  @IsDefined()
+  actualValue: unknown;
 }
 
 export class UpdateEvaluationDto {
-  @IsOptional()
-  @IsEnum(['PASS', 'FAIL', 'INCOMPLETE'])
-  status?: 'PASS' | 'FAIL' | 'INCOMPLETE';
-
   @IsArray()
-  @IsNotEmpty()
+  @ArrayNotEmpty()
+  @IsObject({ each: true })
+  @ValidateNested({ each: true })
+  @Type(() => EvaluationDetailDto)
   details: EvaluationDetailDto[];
 }

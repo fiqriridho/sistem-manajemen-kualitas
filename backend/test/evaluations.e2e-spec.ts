@@ -43,14 +43,7 @@ describe('Evaluation API authorization (e2e)', () => {
   const bearer = (who: TestUser) => `Bearer ${tokens[who] as string}`;
 
   const patchBody = (detailId: string, actualValue: number) => ({
-    details: [
-      {
-        id: detailId,
-        evaluationDetailId: detailId,
-        actualValue,
-        result: 'PASS',
-      },
-    ],
+    details: [{ id: detailId, actualValue }],
   });
 
   beforeAll(async () => {
@@ -91,7 +84,7 @@ describe('Evaluation API authorization (e2e)', () => {
         productId: product.id,
         name: 'E2E Criteria',
         method: 'NUMERIC',
-        standard: { min: 1, max: 10 },
+        standard: { minimum: 1, maximum: 10 },
       },
     });
 

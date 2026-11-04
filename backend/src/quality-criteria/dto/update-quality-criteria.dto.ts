@@ -1,4 +1,5 @@
-import { IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsObject, IsOptional, IsString } from 'class-validator';
+import { quality_criteria_method } from '@prisma/client';
 
 export class UpdateQualityCriteriaDto {
   @IsString()
@@ -9,12 +10,19 @@ export class UpdateQualityCriteriaDto {
   @IsOptional()
   description?: string;
 
+  @IsEnum(quality_criteria_method)
   @IsOptional()
-  standard?: any;
+  method?: quality_criteria_method;
 
+  @IsObject()
+  @IsOptional()
+  standard?: unknown;
+
+  @IsBoolean()
   @IsOptional()
   isRequired?: boolean;
 
+  @IsBoolean()
   @IsOptional()
   isActive?: boolean;
 }

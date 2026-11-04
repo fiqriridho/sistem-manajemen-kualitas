@@ -1,5 +1,7 @@
 import { Injectable, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
+import { parseQualityStandard, resolveQualityStandard } from '../common/quality-standard.js';
 import { CreateQualityCriteriaDto } from './dto/create-quality-criteria.dto.js';
 import { UpdateQualityCriteriaDto } from './dto/update-quality-criteria.dto.js';
 
@@ -8,13 +10,14 @@ export class QualityCriteriaService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateQualityCriteriaDto) {
+    const standard = parseQualityStandard(data.method, data.standard);
     return this.prisma.quality_criteria.create({
       data: {
         productId: data.productId,
         name: data.name,
         description: data.description,
         method: data.method,
-        standard: data.standard,
+        standard: standard as Prisma.InputJsonValue,
         isRequired: data.isRequired ?? true,
         isActive: data.isActive ?? true,
       },
@@ -46,12 +49,19 @@ export class QualityCriteriaService {
     if (!criteria) {
       throw new NotFoundException(`Kriteria dengan ID ${id} tidak ditemukan`);
     }
+
+    const resolved = resolveQualityStandard(criteria.method, criteria.standard, {
+      method: data.method,
+      standard: data.standard,
+    });
+
     return this.prisma.quality_criteria.update({
       where: { id },
       data: {
         name: data.name,
         description: data.description,
-        standard: data.standard,
+        method: resolved.method,
+        standard: resolved.standard as Prisma.InputJsonValue,
         isRequired: data.isRequired,
         isActive: data.isActive,
         updatedAt: new Date(),

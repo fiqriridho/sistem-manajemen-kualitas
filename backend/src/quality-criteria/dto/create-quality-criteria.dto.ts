@@ -1,5 +1,5 @@
 import { IsBoolean, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
-import { Prisma, quality_criteria_method } from '@prisma/client';
+import { quality_criteria_method } from '@prisma/client';
 
 export class CreateQualityCriteriaDto {
   @IsString()
@@ -20,7 +20,7 @@ export class CreateQualityCriteriaDto {
 
   @IsObject()
   @IsNotEmpty()
-  standard: Prisma.InputJsonValue;
+  standard: unknown;
 
   @IsBoolean()
   @IsOptional()

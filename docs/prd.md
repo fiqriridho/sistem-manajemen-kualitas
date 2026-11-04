@@ -127,15 +127,15 @@ Setiap evaluasi menyimpan:
 
 ### 3.6 Evaluation Results
 
-Sistem menentukan status akhir evaluasi berdasarkan kriteria wajib.
+Sistem menentukan status akhir evaluasi berdasarkan kelengkapan seluruh kriteria aktif dan hasil kriteria wajib.
 
 | Condition | Final Status |
 |---|---|
-| Masih ada kriteria wajib yang belum diisi | INCOMPLETE |
+| Masih ada kriteria aktif (wajib atau opsional) yang belum diisi | INCOMPLETE |
 | Semua kriteria wajib selesai dan terdapat hasil FAIL | FAIL |
 | Semua kriteria wajib selesai dan seluruhnya PASS | PASS |
 
-Kriteria opsional tidak memengaruhi status akhir evaluasi.
+Kriteria opsional wajib diisi, tetapi hasil PASS/FAIL-nya tidak memengaruhi status akhir evaluasi.
 
 Nilai rata-rata rating dapat ditampilkan sebagai informasi tambahan, tetapi tidak digunakan sebagai penentu kelulusan.
 

@@ -6,11 +6,11 @@ import {
 } from '@nestjs/common';
 import { Prisma, evaluations_status } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
+import { parseQualityStandard } from '../common/quality-standard.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { CreateEvaluationDto } from './dto/create-evaluation.dto.js';
 import { UpdateEvaluationDto } from './dto/update-evaluation.dto.js';
-
-type CriteriaResult = 'PASS' | 'FAIL' | 'SKIPPED';
+import { calculateFinalStatus, parseActualValue } from './evaluation-calculator.js';
 
 const EVALUATION_STATUSES: readonly evaluations_status[] = ['PASS', 'FAIL', 'INCOMPLETE'];
 
@@ -31,19 +31,26 @@ export class EvaluationsService {
     if (!product) {
       throw new NotFoundException(`Produk dengan ID ${data.productId} tidak ditemukan`);
     }
+    if (product.quality_criteria.length === 0) {
+      throw new BadRequestException('Produk tidak memiliki kriteria aktif');
+    }
 
     const evaluation = await this.prisma.evaluations.create({
       data: {
         productId: product.id,
         evaluatorId: user.userId,
         evaluation_details: {
-          create: product.quality_criteria.map((qc) => ({
-            quality_criteria: { connect: { id: qc.id } },
-            criteriaName: qc.name,
-            method: qc.method,
-            standardSnapshot: qc.standard as Prisma.InputJsonValue,
-            result: 'SKIPPED',
-          })),
+          create: product.quality_criteria.map((qc) => {
+            const standardSnapshot = parseQualityStandard(qc.method, qc.standard);
+            return {
+              quality_criteria: { connect: { id: qc.id } },
+              criteriaName: qc.name,
+              method: qc.method,
+              standardSnapshot: standardSnapshot as Prisma.InputJsonValue,
+              isRequired: qc.isRequired,
+              result: 'SKIPPED',
+            };
+          }),
         },
       },
       include: {
@@ -107,7 +114,20 @@ export class EvaluationsService {
   async update(user: AuthUser, id: string, data: UpdateEvaluationDto) {
     const existing = await this.prisma.evaluations.findUnique({
       where: { id },
-      select: { id: true, evaluatorId: true, status: true },
+      select: {
+        id: true,
+        evaluatorId: true,
+        evaluation_details: {
+          select: {
+            id: true,
+            method: true,
+            standardSnapshot: true,
+            isRequired: true,
+            actualValue: true,
+            result: true,
+          },
+        },
+      },
     });
     if (!existing) {
       throw new NotFoundException(`Evaluasi dengan ID ${id} tidak ditemukan`);
@@ -119,28 +139,26 @@ export class EvaluationsService {
       throw new BadRequestException('Detail evaluasi duplikat');
     }
 
-    const ownedDetails = await this.prisma.evaluation_details.findMany({
-      where: { id: { in: detailIds }, evaluationId: id },
-      select: { id: true },
+    const detailsById = new Map(existing.evaluation_details.map((detail) => [detail.id, detail]));
+    const updates = data.details.map((input) => {
+      if (!input || typeof input !== 'object') {
+        throw new BadRequestException('Detail evaluasi tidak valid');
+      }
+      const detail = detailsById.get(input.id);
+      if (!detail) {
+        throw new BadRequestException('Detail evaluasi tidak valid');
+      }
+      const parsed = parseActualValue(detail.method, detail.standardSnapshot, input.actualValue);
+      return { id: detail.id, actualValue: parsed.value, result: parsed.result };
     });
-    if (ownedDetails.length !== detailIds.length) {
-      throw new BadRequestException('Detail evaluasi tidak valid');
-    }
 
     await this.prisma.$transaction(async (tx) => {
-      if (data.status && data.status !== existing.status) {
-        await tx.evaluations.update({
-          where: { id },
-          data: { status: data.status },
-        });
-      }
-
-      for (const detail of data.details) {
+      for (const update of updates) {
         const updated = await tx.evaluation_details.updateMany({
-          where: { id: detail.id, evaluationId: id },
+          where: { id: update.id, evaluationId: id },
           data: {
-            actualValue: detail.actualValue,
-            result: detail.result,
+            actualValue: update.actualValue,
+            result: update.result,
           },
         });
         if (updated.count !== 1) {
@@ -148,7 +166,11 @@ export class EvaluationsService {
         }
       }
 
-      const status = await this.calculateStatus(id, tx);
+      const details = await tx.evaluation_details.findMany({
+        where: { evaluationId: id },
+        select: { isRequired: true, actualValue: true, result: true },
+      });
+      const status = calculateFinalStatus(details);
       await tx.evaluations.update({
         where: { id },
         data: { status },
@@ -186,72 +208,19 @@ export class EvaluationsService {
   ): Promise<'PASS' | 'FAIL' | 'INCOMPLETE'> {
     const evaluation = await db.evaluations.findUnique({
       where: { id: evaluationId },
-      include: { evaluation_details: { include: { quality_criteria: true } } },
+      select: {
+        id: true,
+        evaluation_details: {
+          select: { isRequired: true, actualValue: true, result: true },
+        },
+      },
     });
 
     if (!evaluation) {
       throw new NotFoundException(`Evaluasi dengan ID ${evaluationId} tidak ditemukan`);
     }
 
-    const requiredDetails = evaluation.evaluation_details.filter((detail) => {
-      const criteria = detail.quality_criteria;
-      return criteria?.isRequired ?? true;
-    });
-
-    if (requiredDetails.length === 0) {
-      return 'INCOMPLETE';
-    }
-
-    const hasFail = requiredDetails.some((detail) => detail.result === 'FAIL');
-    if (hasFail) {
-      return 'FAIL';
-    }
-
-    const allPass = requiredDetails.every((detail) => detail.result === 'PASS');
-    if (allPass) {
-      return 'PASS';
-    }
-
-    return 'INCOMPLETE';
-  }
-
-  calculateCriterionResult(
-    method: 'RATING' | 'NUMERIC' | 'PASS_FAIL',
-    standard: any,
-    actualValue: any,
-  ): CriteriaResult {
-    if (actualValue === null || actualValue === undefined) {
-      return 'SKIPPED';
-    }
-
-    if (method === 'RATING') {
-      const minRating = standard?.min ?? 1;
-      const rating = Number(actualValue);
-      return rating >= minRating ? 'PASS' : 'FAIL';
-    }
-
-    if (method === 'NUMERIC') {
-      const min = standard?.min;
-      const max = standard?.max;
-      const value = Number(actualValue);
-
-      if (min !== undefined && max !== undefined) {
-        return value >= min && value <= max ? 'PASS' : 'FAIL';
-      }
-      if (min !== undefined && value >= min) {
-        return 'PASS';
-      }
-      if (max !== undefined && value <= max) {
-        return 'PASS';
-      }
-      return 'FAIL';
-    }
-
-    if (method === 'PASS_FAIL') {
-      return actualValue === true ? 'PASS' : 'FAIL';
-    }
-
-    return 'SKIPPED';
+    return calculateFinalStatus(evaluation.evaluation_details);
   }
 
   private assertCanAccess(user: AuthUser, evaluatorId: string): void {

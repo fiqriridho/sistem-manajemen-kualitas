@@ -25,6 +25,7 @@ model evaluation_details {
   standardSnapshot Json
   actualValue      Json?
   result           evaluation_details_result
+  isRequired       Boolean                   @default(true)
   createdAt        DateTime                  @default(now())
   quality_criteria quality_criteria          @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
   evaluations      evaluations               @relation(fields: [evaluationId], references: [id], onDelete: Cascade)

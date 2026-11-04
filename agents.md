@@ -143,12 +143,12 @@ Gunakan aturan berikut:
 
 | Condition | Result |
 |---|---|
-| Ada kriteria wajib yang belum diisi | INCOMPLETE |
+| Ada kriteria aktif (wajib atau opsional) yang belum diisi | INCOMPLETE |
 | Semua kriteria wajib selesai dan ada yang FAIL | FAIL |
 | Semua kriteria wajib selesai dan seluruhnya PASS | PASS |
 
 Ketentuan tambahan:
-- Kriteria opsional tidak memengaruhi hasil akhir.
+- Kriteria aktif (wajib atau opsional) wajib diisi; hasil PASS/FAIL kriteria opsional tidak menentukan status akhir.
 - Backend menjadi sumber utama perhitungan.
 - Frontend hanya menampilkan hasil dari backend.
 - Rata-rata rating bukan penentu status akhir.
