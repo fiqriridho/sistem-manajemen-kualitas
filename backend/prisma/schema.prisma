@@ -1,0 +1,131 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model categories {
+  id        String     @id @default(uuid())
+  name      String     @unique
+  slug      String     @unique
+  createdAt DateTime   @default(now())
+  updatedAt DateTime @updatedAt
+  products  products[]
+}
+
+model evaluation_details {
+  id               String                    @id @default(uuid())
+  evaluationId     String
+  criteriaId       String
+  criteriaName     String
+  method           evaluation_details_method
+  standardSnapshot Json
+  actualValue      Json?
+  result           evaluation_details_result
+  createdAt        DateTime                  @default(now())
+  quality_criteria quality_criteria          @relation(fields: [criteriaId], references: [id], onDelete: Cascade)
+  evaluations      evaluations               @relation(fields: [evaluationId], references: [id], onDelete: Cascade)
+
+  @@index([criteriaId], map: "evaluation_details_criteriaId_fkey")
+  @@index([evaluationId], map: "evaluation_details_evaluationId_fkey")
+}
+
+model evaluations {
+  id                 String               @id @default(uuid())
+  productId          String
+  evaluatorId        String
+  evaluatedAt        DateTime             @default(now())
+  status             evaluations_status   @default(INCOMPLETE)
+  createdAt          DateTime             @default(now())
+  updatedAt          DateTime @updatedAt
+  evaluation_details evaluation_details[]
+  users              users                @relation(fields: [evaluatorId], references: [id], onDelete: Cascade)
+  products           products             @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([evaluatorId], map: "evaluations_evaluatorId_fkey")
+  @@index([productId], map: "evaluations_productId_fkey")
+}
+
+model products {
+  id               String             @id @default(uuid())
+  code             String             @unique
+  name             String
+  slug             String             @unique
+  description      String?
+  categoryId       String
+  status           products_status    @default(DRAFT)
+  createdAt        DateTime           @default(now())
+  updatedAt        DateTime @updatedAt
+  evaluations      evaluations[]
+  categories       categories         @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  quality_criteria quality_criteria[]
+}
+
+model quality_criteria {
+  id                 String                  @id @default(uuid())
+  productId          String
+  name               String
+  description        String?
+  method             quality_criteria_method @default(PASS_FAIL)
+  standard           Json
+  isRequired         Boolean                 @default(true)
+  isActive           Boolean                 @default(true)
+  createdAt          DateTime                @default(now())
+  updatedAt          DateTime @updatedAt
+  evaluation_details evaluation_details[]
+  products           products                @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([productId], map: "quality_criteria_productId_fkey")
+}
+
+model users {
+  id          String        @id @default(uuid())
+  email       String        @unique
+  name        String
+  password    String
+  role        users_role    @default(EVALUATOR)
+  isActive    Boolean       @default(true)
+  lastLogin   DateTime?
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime @updatedAt
+  evaluations evaluations[]
+}
+
+enum quality_criteria_method {
+  RATING
+  NUMERIC
+  PASS_FAIL
+}
+
+enum evaluations_status {
+  PASS
+  FAIL
+  INCOMPLETE
+}
+
+enum evaluation_details_method {
+  RATING
+  NUMERIC
+  PASS_FAIL
+}
+
+enum users_role {
+  ADMIN
+  EVALUATOR
+  SUPERVISOR
+}
+
+enum products_status {
+  DRAFT
+  ACTIVE
+  INACTIVE
+}
+
+enum evaluation_details_result {
+  PASS
+  FAIL
+  SKIPPED
+}
