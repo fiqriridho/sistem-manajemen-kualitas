@@ -1,7 +1,9 @@
 import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
+import { ProductQueryDto } from './dto/product-query.dto.js';
 import { UpdateProductDto } from './dto/update-product.dto.js';
 
 @Injectable()
@@ -16,12 +18,29 @@ export class ProductsService {
         slug: data.slug,
         description: data.description,
         categoryId: data.categoryId,
+        status: data.status,
       },
     });
   }
 
-  async findAll(user: AuthUser) {
+  async findAll(user: AuthUser, query: ProductQueryDto = {}) {
+    const where: Prisma.productsWhereInput = {};
+
+    if (query.search) {
+      where.OR = [
+        { name: { contains: query.search } },
+        { code: { contains: query.search } },
+      ];
+    }
+    if (query.categoryId) {
+      where.categoryId = query.categoryId;
+    }
+    if (query.status) {
+      where.status = query.status;
+    }
+
     return this.prisma.products.findMany({
+      where,
       include: {
         categories: true,
         evaluations: { where: this.evaluationWhere(user) },
@@ -65,6 +84,7 @@ export class ProductsService {
         slug: data.slug,
         description: data.description,
         categoryId: data.categoryId,
+        status: data.status,
       },
     });
   }
