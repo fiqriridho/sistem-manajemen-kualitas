@@ -3,11 +3,12 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import { JwtPayload } from '../dto/jwt.payload.js';
 import { ConfigService } from '@nestjs/config';
+import { UsersService } from '../../users/users.service.js';
 import { isUserRole, type AuthUser } from '../../common/types/auth-user.js';
 
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(configService: ConfigService, private readonly usersService: UsersService) {
     super({
       jwtFromRequest: ExtractJwt.fromAuthHeaderAsBearerToken(),
       ignoreExpiration: false,
@@ -16,10 +17,19 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   }
 
   async validate(payload: JwtPayload): Promise<AuthUser> {
+    if (typeof payload?.sub !== 'string' || payload.sub.length === 0) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
     if (!isUserRole(payload.role)) {
       throw new UnauthorizedException('Invalid token role');
     }
 
-    return { userId: payload.sub, email: payload.email, role: payload.role };
+    const user = await this.usersService.findActiveAuthUserById(payload.sub);
+    if (!user) {
+      throw new UnauthorizedException('Invalid session');
+    }
+
+    return user;
   }
 }

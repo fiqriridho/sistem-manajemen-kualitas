@@ -2,6 +2,7 @@ import { Injectable, ConflictException, NotFoundException, UnauthorizedException
 import { PrismaService } from '../common/prisma.service.js';
 import type { users_role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+import type { AuthUser } from '../common/types/auth-user.js';
 
 function isPrismaError(error: unknown, code: string): boolean {
   return (
@@ -113,6 +114,19 @@ export class UsersService {
       throw new UnauthorizedException('Invalid credentials');
     }
     return user;
+  }
+
+  async findActiveAuthUserById(id: string): Promise<AuthUser | null> {
+    const user = await this.prisma.users.findUnique({
+      where: { id },
+      select: { id: true, email: true, role: true, isActive: true },
+    });
+
+    if (!user?.isActive) {
+      return null;
+    }
+
+    return { userId: user.id, email: user.email, role: user.role };
   }
 
   async findByEmail(email: string) {
