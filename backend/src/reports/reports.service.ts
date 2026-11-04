@@ -1,7 +1,30 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  Injectable,
+} from '@nestjs/common';
+import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import { EvaluationHistoryQueryDto } from './dto/evaluation-history-query.dto.js';
-import { EvaluationHistoryResponseDto, PaginatedEvaluationHistoryResponseDto } from './dto/evaluation-history-response.dto.js';
+import {
+  EvaluationHistoryResponseDto,
+  PaginatedEvaluationHistoryResponseDto,
+} from './dto/evaluation-history-response.dto.js';
+import { EvaluationSummaryQueryDto } from './dto/evaluation-summary-query.dto.js';
+import { EvaluationSummaryResponseDto } from './dto/evaluation-summary-response.dto.js';
+
+const DATE_ONLY_RE = /^\d{4}-\d{2}-\d{2}$/;
+
+function startOfDay(value: Date): Date {
+  const date = new Date(value.getTime());
+  date.setUTCHours(0, 0, 0, 0);
+  return date;
+}
+
+function endOfDay(value: Date): Date {
+  const date = new Date(value.getTime());
+  date.setUTCHours(23, 59, 59, 999);
+  return date;
+}
 
 @Injectable()
 export class ReportsService {
@@ -14,29 +37,7 @@ export class ReportsService {
     const limit = query.limit ? Number(query.limit) : 20;
     const skip = (page - 1) * limit;
 
-    const where: any = {};
-
-    if (query.productId) {
-      where.productId = query.productId;
-    }
-
-    if (query.evaluatorId) {
-      where.evaluatorId = query.evaluatorId;
-    }
-
-    if (query.status) {
-      where.status = query.status;
-    }
-
-    if (query.startDate || query.endDate) {
-      where.evaluatedAt = {};
-      if (query.startDate) {
-        where.evaluatedAt.gte = new Date(query.startDate);
-      }
-      if (query.endDate) {
-        where.evaluatedAt.lte = new Date(query.endDate);
-      }
-    }
+    const where = this.buildEvaluationWhere(query);
 
     const [totalItems, evaluations] = await Promise.all([
       this.prisma.evaluations.count({ where }),
@@ -108,5 +109,94 @@ export class ReportsService {
         totalPages: Math.ceil(totalItems / limit),
       },
     };
+  }
+
+  async getEvaluationSummary(
+    query: EvaluationSummaryQueryDto,
+  ): Promise<EvaluationSummaryResponseDto> {
+    const where = this.buildEvaluationWhere(query);
+
+    const groups = await this.prisma.evaluations.groupBy({
+      by: ['status'],
+      where,
+      _count: { _all: true },
+    });
+
+    const byStatus: { PASS: number; FAIL: number; INCOMPLETE: number } = {
+      PASS: 0,
+      FAIL: 0,
+      INCOMPLETE: 0,
+    };
+    let totalEvaluations = 0;
+
+    for (const group of groups) {
+      const count = Number(group._count._all);
+      byStatus[group.status as keyof typeof byStatus] += count;
+      totalEvaluations += count;
+    }
+
+    return { totalEvaluations, byStatus };
+  }
+
+  private buildEvaluationWhere(
+    query:
+      | EvaluationHistoryQueryDto
+      | EvaluationSummaryQueryDto,
+  ): Prisma.evaluationsWhereInput {
+    const where: Prisma.evaluationsWhereInput = {};
+
+    if (query.productId) {
+      where.productId = query.productId;
+    }
+
+    if (query.categoryId) {
+      where.products = { categoryId: query.categoryId };
+    }
+
+    if ('evaluatorId' in query && query.evaluatorId) {
+      where.evaluatorId = query.evaluatorId;
+    }
+
+    if ('status' in query && query.status) {
+      where.status = query.status;
+    }
+
+    if (query.startDate || query.endDate) {
+      let startDate = query.startDate
+        ? this.parseDate(query.startDate, 'startDate')
+        : undefined;
+      let endDate = query.endDate
+        ? this.parseDate(query.endDate, 'endDate')
+        : undefined;
+
+      if (startDate && DATE_ONLY_RE.test(query.startDate ?? '')) {
+        startDate = startOfDay(startDate);
+      }
+      if (endDate && DATE_ONLY_RE.test(query.endDate ?? '')) {
+        endDate = endOfDay(endDate);
+      }
+
+      if (startDate && endDate && startDate > endDate) {
+        throw new BadRequestException('startDate harus sebelum atau sama dengan endDate');
+      }
+
+      where.evaluatedAt = {};
+      if (startDate) {
+        where.evaluatedAt.gte = startDate;
+      }
+      if (endDate) {
+        where.evaluatedAt.lte = endDate;
+      }
+    }
+
+    return where;
+  }
+
+  private parseDate(value: string, field: string): Date {
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      throw new BadRequestException(`${field} tidak valid`);
+    }
+    return date;
   }
 }
