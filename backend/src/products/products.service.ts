@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service.js';
 import type { AuthUser } from '../common/types/auth-user.js';
 import { CreateProductDto } from './dto/create-product.dto.js';
@@ -76,6 +76,17 @@ export class ProductsService {
     if (!product) {
       throw new NotFoundException(`Product dengan ID ${id} tidak ditemukan`);
     }
+
+    const evaluationCount = await this.prisma.evaluations.count({
+      where: { productId: id },
+    });
+
+    if (evaluationCount > 0) {
+      throw new ConflictException(
+        'Produk tidak dapat dihapus karena masih memiliki riwayat evaluasi. Nonaktifkan produk dengan status INACTIVE.',
+      );
+    }
+
     await this.prisma.products.delete({
       where: { id },
     });

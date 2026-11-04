@@ -1,4 +1,4 @@
-import { Injectable, NotFoundException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException } from '@nestjs/common';
 import { Prisma } from '@prisma/client';
 import { PrismaService } from '../common/prisma.service.js';
 import { parseQualityStandard, resolveQualityStandard } from '../common/quality-standard.js';
@@ -29,6 +29,7 @@ export class QualityCriteriaService {
       orderBy: { createdAt: 'desc' },
     });
   }
+
   async findActive() {
     return this.prisma.quality_criteria.findMany({
       where: { isActive: true },
@@ -74,6 +75,17 @@ export class QualityCriteriaService {
     if (!criteria) {
       throw new NotFoundException(`Kriteria dengan ID ${id} tidak ditemukan`);
     }
+
+    const detailCount = await this.prisma.evaluation_details.count({
+      where: { criteriaId: id },
+    });
+
+    if (detailCount > 0) {
+      throw new ConflictException(
+        'Kriteria tidak dapat dihapus karena sudah digunakan pada detail evaluasi. Nonaktifkan kriteria (isActive=false) sebagai alternatif.',
+      );
+    }
+
     await this.prisma.quality_criteria.delete({ where: { id } });
     return { message: 'Kriteria berhasil dihapus' };
   }
