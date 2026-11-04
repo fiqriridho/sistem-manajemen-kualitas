@@ -1,11 +1,11 @@
-import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards } from '@nestjs/common';
+import { Controller, Get, Post, Body, Patch, Param, Delete, UseGuards, Query } from '@nestjs/common';
 import { QualityCriteriaService } from './quality-criteria.service.js';
 import { CreateQualityCriteriaDto } from './dto/create-quality-criteria.dto.js';
+import { QualityCriteriaQueryDto } from './dto/quality-criteria-query.dto.js';
 import { UpdateQualityCriteriaDto } from './dto/update-quality-criteria.dto.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-
 @Controller('quality-criteria')
 @UseGuards(JwtAuthGuard, RolesGuard)
 export class QualityCriteriaController {
@@ -18,13 +18,13 @@ export class QualityCriteriaController {
   }
 
   @Get()
-  findAll() {
-    return this.service.findAll();
+  findAll(@Query() query: QualityCriteriaQueryDto) {
+    return this.service.findAll(query.productId);
   }
 
   @Get('active')
-  findActive() {
-    return this.service.findActive();
+  findActive(@Query() query: QualityCriteriaQueryDto) {
+    return this.service.findActive(query.productId);
   }
 
   @Get(':id')

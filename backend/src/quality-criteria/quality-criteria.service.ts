@@ -10,6 +10,13 @@ export class QualityCriteriaService {
   constructor(private prisma: PrismaService) {}
 
   async create(data: CreateQualityCriteriaDto) {
+    const product = await this.prisma.products.findUnique({
+      where: { id: data.productId },
+    });
+    if (!product) {
+      throw new NotFoundException(`Produk dengan ID ${data.productId} tidak ditemukan`);
+    }
+
     const standard = parseQualityStandard(data.method, data.standard);
     return this.prisma.quality_criteria.create({
       data: {
@@ -24,15 +31,24 @@ export class QualityCriteriaService {
     });
   }
 
-  async findAll() {
+  async findAll(productId?: string) {
+    const where: Prisma.quality_criteriaWhereInput = {};
+    if (productId) {
+      where.productId = productId;
+    }
     return this.prisma.quality_criteria.findMany({
+      where,
       orderBy: { createdAt: 'desc' },
     });
   }
 
-  async findActive() {
+  async findActive(productId?: string) {
+    const where: Prisma.quality_criteriaWhereInput = { isActive: true };
+    if (productId) {
+      where.productId = productId;
+    }
     return this.prisma.quality_criteria.findMany({
-      where: { isActive: true },
+      where,
       orderBy: { createdAt: 'desc' },
     });
   }

@@ -1,9 +1,10 @@
-import { IsBoolean, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString } from 'class-validator';
+import { IsBoolean, IsEnum, IsNotEmpty, IsObject, IsOptional, IsString, IsUUID } from 'class-validator';
 import { quality_criteria_method } from '@prisma/client';
 
 export class CreateQualityCriteriaDto {
   @IsString()
   @IsNotEmpty()
+  @IsUUID()
   productId: string;
 
   @IsString()
