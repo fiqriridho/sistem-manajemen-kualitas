@@ -14,7 +14,6 @@ export class EvaluationHistoryResponseDto {
   evaluator: {
     id: string;
     name: string;
-    email: string;
   };
   criteriaScores: {
     criteriaId: string;

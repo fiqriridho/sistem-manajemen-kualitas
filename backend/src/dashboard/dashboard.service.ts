@@ -19,15 +19,16 @@ export class DashboardService {
         },
       }),
     ]);
-    const evaluations = await this.prisma.evaluations.findMany({
-      select: { status: true, evaluatedAt: true },
+    const evaluationsByStatusGroup = await this.prisma.evaluations.groupBy({
+      by: ['status'],
+      _count: { _all: true },
     });
 
     const now = new Date();
     const recentSince = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const recentEvaluations = evaluations.filter(
-      (evaluation) => evaluation.evaluatedAt >= recentSince,
-    ).length;
+    const recentEvaluations = await this.prisma.evaluations.count({
+      where: { evaluatedAt: { gte: recentSince } },
+    });
 
     const productsByQualityStatus: {
       PASS: number;
@@ -56,19 +57,14 @@ export class DashboardService {
       }
     }
 
-    const evaluationsByStatus: { PASS: number; FAIL: number; INCOMPLETE: number } = {
+    const evaluationsByStatus = {
       PASS: 0,
       FAIL: 0,
       INCOMPLETE: 0,
     };
-    for (const evaluation of evaluations) {
-      if (evaluation.status === 'PASS') {
-        evaluationsByStatus.PASS += 1;
-      } else if (evaluation.status === 'FAIL') {
-        evaluationsByStatus.FAIL += 1;
-      } else if (evaluation.status === 'INCOMPLETE') {
-        evaluationsByStatus.INCOMPLETE += 1;
-      }
+    for (const group of evaluationsByStatusGroup) {
+      const count = Number(group._count._all);
+      evaluationsByStatus[group.status as keyof typeof evaluationsByStatus] += count;
     }
 
     return {

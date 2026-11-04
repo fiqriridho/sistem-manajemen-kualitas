@@ -16,6 +16,20 @@ export class AllExceptionsFilter implements ExceptionFilter {
     let status = HttpStatus.INTERNAL_SERVER_ERROR;
     let message = 'Internal server error';
 
+    const prismaError = exception as { code?: unknown };
+    if (typeof prismaError?.code === 'string') {
+      const knownPrisma: Record<string, { status: number; message: string }> = {
+        P2002: { status: HttpStatus.CONFLICT, message: 'Data sudah terdaftar.' },
+        P2003: { status: HttpStatus.BAD_REQUEST, message: 'Referensi tidak valid.' },
+        P2025: { status: HttpStatus.NOT_FOUND, message: 'Data tidak ditemukan.' },
+      };
+      const mapping = knownPrisma[prismaError.code];
+      if (mapping) {
+        status = mapping.status;
+        message = mapping.message;
+      }
+    }
+
     if (exception instanceof HttpException) {
       status = exception.getStatus();
       const responseBody = exception.getResponse();

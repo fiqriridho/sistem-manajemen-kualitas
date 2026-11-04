@@ -92,7 +92,6 @@ export class ReportsService {
         evaluator: {
           id: evaluation.users.id,
           name: evaluation.users.name,
-          email: evaluation.users.email,
         },
         criteriaScores,
         createdAt: evaluation.createdAt.toISOString(),

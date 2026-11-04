@@ -296,9 +296,13 @@ describe('Evaluation API authorization (e2e)', () => {
     const asAdmin = await request(httpServer)
       .delete(`/api/evaluations/${target.body.id}`)
       .set('Authorization', bearer('admin'));
-    expect(asAdmin.status).toBe(200);
-
-    const stored = await prisma.evaluations.findUnique({ where: { id: target.body.id } });
-    expect(stored).toBeNull();
+    expect(asAdmin.status).toBe(409);
+    expect(asAdmin.body.message).toBe('Evaluasi tidak dapat dihapus karena riwayat evaluasi harus tetap tercatat');
+    const stored = await prisma.evaluations.findUnique({
+      where: { id: target.body.id },
+      include: { evaluation_details: true },
+    });
+    expect(stored).not.toBeNull();
+    expect(stored?.evaluation_details).toHaveLength(1);
   });
 });

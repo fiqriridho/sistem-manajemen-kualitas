@@ -3,7 +3,11 @@ import * as bcrypt from 'bcrypt';
 import { randomUUID } from 'crypto';
 
 const prisma = new PrismaClient();
-const SEED_PASSWORD = 'password123';
+const SEED_PASSWORD = process.env.SEED_PASSWORD;
+
+if (!SEED_PASSWORD) {
+  throw new Error('SEED_PASSWORD environment variable is required');
+}
 
 async function upsertUser(email: string, name: string, role: users_role) {
   const hashedPassword = await bcrypt.hash(SEED_PASSWORD, 10);

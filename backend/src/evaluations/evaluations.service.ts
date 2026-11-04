@@ -1,5 +1,6 @@
 import {
   BadRequestException,
+  ConflictException,
   ForbiddenException,
   Injectable,
   NotFoundException,
@@ -196,10 +197,7 @@ export class EvaluationsService {
       throw new NotFoundException(`Evaluasi dengan ID ${id} tidak ditemukan`);
     }
 
-    await this.prisma.evaluations.delete({
-      where: { id },
-    });
-    return { message: 'Evaluasi berhasil dihapus' };
+    throw new ConflictException('Evaluasi tidak dapat dihapus karena riwayat evaluasi harus tetap tercatat');
   }
 
   async calculateStatus(
