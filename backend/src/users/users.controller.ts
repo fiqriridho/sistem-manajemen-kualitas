@@ -3,21 +3,8 @@ import { UsersService } from './users.service.js';
 import { JwtAuthGuard } from '../common/guards/jwt-auth.guard.js';
 import { RolesGuard } from '../common/guards/roles.guard.js';
 import { Roles } from '../common/decorators/roles.decorator.js';
-import type { users_role } from '@prisma/client';
-
-class CreateUserDto {
-  email: string;
-  password: string;
-  name: string;
-  role?: users_role;
-}
-
-class UpdateUserDto {
-  email?: string;
-  name?: string;
-  role?: users_role;
-  isActive?: boolean;
-}
+import { CreateUserDto } from './dto/create-user.dto.js';
+import { UpdateUserDto } from './dto/update-user.dto.js';
 
 @UseGuards(JwtAuthGuard, RolesGuard)
 @Controller('users')
@@ -25,6 +12,7 @@ export class UsersController {
   constructor(private readonly usersService: UsersService) {}
 
   @Post()
+  @Roles('ADMIN')
   create(@Body() dto: CreateUserDto) {
     return this.usersService.create(dto);
   }
@@ -36,6 +24,7 @@ export class UsersController {
   }
 
   @Get(':id')
+  @Roles('ADMIN')
   findOne(@Param('id') id: string) {
     return this.usersService.findOne(id);
   }

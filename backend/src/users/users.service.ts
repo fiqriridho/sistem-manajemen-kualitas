@@ -1,7 +1,16 @@
-import { Injectable, UnauthorizedException } from '@nestjs/common';
+import { Injectable, ConflictException, NotFoundException, UnauthorizedException } from '@nestjs/common';
 import { PrismaService } from '../common/prisma.service.js';
 import type { users_role } from '@prisma/client';
 import * as bcrypt from 'bcrypt';
+
+function isPrismaError(error: unknown, code: string): boolean {
+  return (
+    typeof error === 'object' &&
+    error !== null &&
+    'code' in error &&
+    (error as { code?: unknown }).code === code
+  );
+}
 
 @Injectable()
 export class UsersService {
@@ -9,15 +18,22 @@ export class UsersService {
 
   async create(data: { email: string; password: string; name: string; role?: users_role }) {
     const hashedPassword = await bcrypt.hash(data.password, 10);
-    return this.prisma.users.create({
-      data: {
-        email: data.email,
-        password: hashedPassword,
-        name: data.name,
-        role: data.role || 'EVALUATOR',
-      },
-      select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
-    });
+    try {
+      return await this.prisma.users.create({
+        data: {
+          email: data.email,
+          password: hashedPassword,
+          name: data.name,
+          role: data.role || 'EVALUATOR',
+        },
+        select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
+      });
+    } catch (error) {
+      if (isPrismaError(error, 'P2002')) {
+        throw new ConflictException('Email already registered');
+      }
+      throw error;
+    }
   }
 
   async findAll() {
@@ -27,10 +43,16 @@ export class UsersService {
   }
 
   async findOne(id: string) {
-    return this.prisma.users.findUnique({
+    const user = await this.prisma.users.findUnique({
       where: { id },
       select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
     });
+
+    if (!user) {
+      throw new NotFoundException('User not found');
+    }
+
+    return user;
   }
 
   async findOneByEmail(email: string) {
@@ -40,18 +62,43 @@ export class UsersService {
   }
 
   async update(id: string, data: { email?: string; name?: string; role?: users_role; isActive?: boolean }) {
-    return this.prisma.users.update({
-      where: { id },
-      data,
-      select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
-    });
+    try {
+      return await this.prisma.users.update({
+        where: { id },
+        data,
+        select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
+      });
+    } catch (error) {
+      if (isPrismaError(error, 'P2025')) {
+        throw new NotFoundException('User not found');
+      }
+      if (isPrismaError(error, 'P2002')) {
+        throw new ConflictException('Email already registered');
+      }
+      throw error;
+    }
   }
 
   async remove(id: string) {
-    return this.prisma.users.delete({
-      where: { id },
-      select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
+    const evaluationCount = await this.prisma.evaluations.count({
+      where: { evaluatorId: id },
     });
+
+    if (evaluationCount > 0) {
+      throw new ConflictException('User has evaluation history');
+    }
+
+    try {
+      return await this.prisma.users.delete({
+        where: { id },
+        select: { id: true, email: true, name: true, role: true, isActive: true, lastLogin: true, createdAt: true },
+      });
+    } catch (error) {
+      if (isPrismaError(error, 'P2025')) {
+        throw new NotFoundException('User not found');
+      }
+      throw error;
+    }
   }
 
   async validateUser(email: string, password: string) {
