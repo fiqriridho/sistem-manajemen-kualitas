@@ -9,7 +9,7 @@ export class DashboardController {
   constructor(private readonly dashboardService: DashboardService) {}
 
   @Get('stats')
-  getStats(): DashboardStatsDto {
+  async getStats(): Promise<DashboardStatsDto> {
     return this.dashboardService.getStats();
   }
 }
